@@ -1,0 +1,9 @@
+.terraform
+.terraform.lock.hcl
+.idea
+terraform.tfstate
+terraform.tfstate.backup
+lambda/node_modules
+lambda/app.js
+lambda/app.zip
+lambda/app.zip
