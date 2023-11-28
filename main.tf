@@ -38,12 +38,12 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda_logging" {
-  name              = "/aws/lambda/example-lambda-function"
+  name              = "/aws/lambda/cookstore-lambda"
   retention_in_days = 5
 }
 
 resource "aws_lambda_function" "lambda" {
-  function_name = "hello_lambda"
+  function_name = "cookstoreLambda"
 
   filename         = "${data.archive_file.zip.output_path}"
   source_code_hash = "${data.archive_file.zip.output_base64sha256}"
@@ -62,32 +62,32 @@ resource "aws_lambda_function" "lambda" {
 }
 
 # Create REST API
-resource "aws_api_gateway_rest_api" "example" {
-  name        = "example"
-  description = "Example REST API for Lambda"
+resource "aws_api_gateway_rest_api" "cookstore_api" {
+  name        = "cookstore"
+  description = "Cookstore REST API for Lambda"
 }
 
 # Create a resource in the API, this is just a logical container.
-resource "aws_api_gateway_resource" "example" {
-  rest_api_id = aws_api_gateway_rest_api.example.id
-  parent_id   = aws_api_gateway_rest_api.example.root_resource_id
-  path_part   = "myresource"
+resource "aws_api_gateway_resource" "product_images" {
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  parent_id   = aws_api_gateway_rest_api.cookstore_api.root_resource_id
+  path_part   = "product-images"
 }
 
 # Define a GET method on the above resource.
-resource "aws_api_gateway_method" "example" {
-  rest_api_id   = aws_api_gateway_rest_api.example.id
-  resource_id   = aws_api_gateway_resource.example.id
+resource "aws_api_gateway_method" "cookstore_api_get_method" {
+  rest_api_id   = aws_api_gateway_rest_api.cookstore_api.id
+  resource_id   = aws_api_gateway_resource.product_images.id
   http_method   = "GET"
   authorization = "NONE"
   api_key_required = true
 }
 
 # Connect the Lambda function to the GET method via an integration.
-resource "aws_api_gateway_integration" "example" {
-  rest_api_id = aws_api_gateway_rest_api.example.id
-  resource_id = aws_api_gateway_resource.example.id
-  http_method = aws_api_gateway_method.example.http_method
+resource "aws_api_gateway_integration" "cookstore_api_get_method_integration" {
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  resource_id = aws_api_gateway_resource.product_images.id
+  http_method = aws_api_gateway_method.cookstore_api_get_method.http_method
 
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
@@ -101,39 +101,39 @@ resource "aws_lambda_permission" "apigw" {
   function_name = aws_lambda_function.lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/${aws_api_gateway_method.example.http_method}${aws_api_gateway_resource.example.path}"
+  source_arn = "${aws_api_gateway_rest_api.cookstore_api.execution_arn}/*/${aws_api_gateway_method.cookstore_api_get_method.http_method}${aws_api_gateway_resource.product_images.path}"
 }
 
 # The Deploy stage of the API.
-resource "aws_api_gateway_deployment" "example" {
-  depends_on = [aws_api_gateway_integration.example]
+resource "aws_api_gateway_deployment" "prod" {
+  depends_on = [aws_api_gateway_integration.cookstore_api_get_method_integration]
 
-  rest_api_id = aws_api_gateway_rest_api.example.id
-  stage_name  = "test"
-  description = "This is a test"
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  stage_name  = "prod"
+  description = "prod stage"
 
   variables = {
     "lambdaFunctionName" = aws_lambda_function.lambda.function_name
   }
 }
 
-resource "aws_api_gateway_api_key" "demo_api_key" {
-  name = "demo_api_key"
+resource "aws_api_gateway_api_key" "api_key" {
+  name = "cookstore_api_key"
 }
 
-resource "aws_api_gateway_usage_plan" "demo_api_usage_plan" {
-  name = "demo_usage_plan"
+resource "aws_api_gateway_usage_plan" "api_usage_plan" {
+  name = "cookstore_usage_plan"
 
   api_stages {
-    api_id = aws_api_gateway_rest_api.example.id
-    stage  = "${aws_api_gateway_deployment.example.stage_name}"
+    api_id = aws_api_gateway_rest_api.cookstore_api.id
+    stage  = "${aws_api_gateway_deployment.prod.stage_name}"
   }
 }
 
 resource "aws_api_gateway_usage_plan_key" "demo_api_usage_plan_key" {
-  key_id        = "${aws_api_gateway_api_key.demo_api_key.id}"
+  key_id        = "${aws_api_gateway_api_key.api_key.id}"
   key_type      = "API_KEY"
-  usage_plan_id = "${aws_api_gateway_usage_plan.demo_api_usage_plan.id}"
+  usage_plan_id = "${aws_api_gateway_usage_plan.api_usage_plan.id}"
 }
 
 
