@@ -37,6 +37,29 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_policy" "access_product_image_bucket_policy" {
+  name        = "TestS3BucketAccess"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.product_images.id}/*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "s3_lambda_s3_bucket_access" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.access_product_image_bucket_policy.arn
+}
+
 resource "aws_cloudwatch_log_group" "lambda_logging" {
   name              = "/aws/lambda/cookstore-lambda"
   retention_in_days = 5
