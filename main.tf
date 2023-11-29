@@ -78,7 +78,7 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
-      greeting = "Hello"
+      UploadBucket = aws_s3_bucket.product_images.id
     }
   }
 }
