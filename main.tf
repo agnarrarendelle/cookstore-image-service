@@ -68,8 +68,7 @@ resource "aws_cloudwatch_log_group" "lambda_logging" {
 resource "aws_lambda_function" "lambda" {
   function_name = "cookstoreLambda"
 
-  filename         = "${data.archive_file.zip.output_path}"
-  source_code_hash = "${data.archive_file.zip.output_base64sha256}"
+  filename         = "${path.module}/code.zip"
 
   role    = "${aws_iam_role.iam_for_lambda.arn}"
   depends_on = [aws_cloudwatch_log_group.lambda_logging]
