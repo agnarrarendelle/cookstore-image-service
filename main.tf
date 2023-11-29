@@ -136,5 +136,31 @@ resource "aws_api_gateway_usage_plan_key" "demo_api_usage_plan_key" {
   usage_plan_id = "${aws_api_gateway_usage_plan.api_usage_plan.id}"
 }
 
+resource "aws_s3_bucket" "product_images" {
+  bucket        = "qafgasfgdg123"
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_public_access_block" "product_image_bucket_access_block" {
+  bucket = aws_s3_bucket.product_images.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_cors_configuration" "product_image_bucket_cors_config" {
+  bucket = aws_s3_bucket.product_images.bucket
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT", "POST", "GET"]
+    allowed_origins = ["http://localhost:5173"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+
+}
 
 
