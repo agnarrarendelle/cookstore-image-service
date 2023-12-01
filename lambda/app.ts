@@ -23,10 +23,60 @@ interface GetSignedUrlBody {
 export const lambdaHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      msg: "hello there",
-    }),
-  };
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+  if (!event.pathParameters) {
+    const body: GetSignedUrlBody = JSON.parse(event.body!);
+    const command = new PutObjectCommand({
+      Bucket: process.env.UploadBucket,
+      Key: body.imageKey,
+      ContentType: "image/png",
+    });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 600 });
+    try {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          url: url,
+        }),
+      };
+    } catch (err) {
+      console.log(err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: "some error happened",
+        }),
+      };
+    }
+  } else {
+    console.log(event.pathParameters)
+    const id = event.pathParameters.id;
+    const command = new GetObjectCommand({
+      Bucket: process.env.UploadBucket,
+      Key: id,
+    });
+    console.log("here 1")
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn: 24 * 60 * 60,
+    });
+    console.log("here 2")
+
+    try {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          url: url,
+        }),
+      };
+    } catch (err) {
+      console.log(err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: "some error happened",
+        }),
+      };
+    }
+  }
 };
