@@ -3,6 +3,8 @@ function deploy {
   TIMESTAMP=$(date +%Y%m%d%H%M%S)
   rm -rf code.zip && \
   cd lambda/ && \
+  rm -rf dist && \
+
   # Run the npm commands to transpile the TypeScript to JavaScript
   npm i && \
   npm run build && \
@@ -15,8 +17,7 @@ function deploy {
   cd dist &&\
   find . -name "*.zip" -type f -delete && \
   # Zip everything in the dist folder and
-  zip -r ../../code.zip . && \
-  rm -rf dist
+  zip -r ../../code.zip .
 #  cd ../terraform && \
 #  terraform plan -input=false -var lambdasVersion="$TIMESTAMP" -out=./tfplan && \
 #  terraform apply -input=false ./tfplan
