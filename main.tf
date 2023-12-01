@@ -8,8 +8,8 @@ provider "archive" {
 
 data "archive_file" "zip" {
   type        = "zip"
-  source_file = "${path.module}/lambda/app.js"
-  output_path = "${path.module}/lambda/app.zip"
+  source_dir  = "./lambda/dist"
+  output_path = "./app.zip"
 }
 
 data "aws_iam_policy_document" "policy" {
@@ -68,7 +68,8 @@ resource "aws_cloudwatch_log_group" "lambda_logging" {
 resource "aws_lambda_function" "lambda" {
   function_name = "cookstoreLambda"
 
-  filename         = "${path.module}/code.zip"
+  filename         = data.archive_file.zip.output_path
+  source_code_hash = data.archive_file.zip.output_base64sha256
 
   role    = "${aws_iam_role.iam_for_lambda.arn}"
   depends_on = [aws_cloudwatch_log_group.lambda_logging]
