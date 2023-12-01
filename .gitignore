@@ -4,6 +4,6 @@
 terraform.tfstate
 terraform.tfstate.backup
 lambda/node_modules
-lambda/app.js
+lambda/*.js
 lambda/app.zip
-lambda/app.zip
+lambda/dist
