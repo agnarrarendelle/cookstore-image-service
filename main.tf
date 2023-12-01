@@ -96,6 +96,18 @@ resource "aws_api_gateway_resource" "product_images" {
   path_part   = "product-images"
 }
 
+resource "aws_api_gateway_resource" "product_image" {
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  parent_id   = aws_api_gateway_rest_api.cookstore_api.root_resource_id
+  path_part   = "product-image"
+}
+
+resource "aws_api_gateway_resource" "product_image_id" {
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  parent_id   = aws_api_gateway_resource.product_image.id
+  path_part   = "{id}"
+}
+
 # Define a POST method on the above resource.
 resource "aws_api_gateway_method" "cookstore_api_post_method" {
   rest_api_id   = aws_api_gateway_rest_api.cookstore_api.id
@@ -106,7 +118,7 @@ resource "aws_api_gateway_method" "cookstore_api_post_method" {
 }
 
 # Connect the Lambda function to the GET method via an integration.
-resource "aws_api_gateway_integration" "cookstore_api_get_method_integration" {
+resource "aws_api_gateway_integration" "cookstore_api_post_method_integration" {
   rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
   resource_id = aws_api_gateway_resource.product_images.id
   http_method = aws_api_gateway_method.cookstore_api_post_method.http_method
@@ -116,9 +128,29 @@ resource "aws_api_gateway_integration" "cookstore_api_get_method_integration" {
   uri                     = aws_lambda_function.lambda.invoke_arn
 }
 
+# Define a POST method on the above resource.
+resource "aws_api_gateway_method" "cookstore_api_get_method" {
+  rest_api_id   = aws_api_gateway_rest_api.cookstore_api.id
+  resource_id   = aws_api_gateway_resource.product_image_id.id
+  http_method   = "GET"
+  authorization = "NONE"
+  api_key_required = true
+}
+
+# Connect the Lambda function to the GET method via an integration.
+resource "aws_api_gateway_integration" "cookstore_api_get_method_integration" {
+  rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
+  resource_id = aws_api_gateway_resource.product_image_id.id
+  http_method = aws_api_gateway_method.cookstore_api_get_method.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.lambda.invoke_arn
+}
+
 # Allow the API to trigger the Lambda function.
-resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+resource "aws_lambda_permission" "apigw_post" {
+  statement_id  = "AllowAPIGatewayInvokePost"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.lambda.function_name
   principal     = "apigateway.amazonaws.com"
@@ -126,9 +158,19 @@ resource "aws_lambda_permission" "apigw" {
   source_arn = "${aws_api_gateway_rest_api.cookstore_api.execution_arn}/*/${aws_api_gateway_method.cookstore_api_post_method.http_method}${aws_api_gateway_resource.product_images.path}"
 }
 
+# Allow the API to trigger the Lambda function.
+resource "aws_lambda_permission" "apigw_get" {
+  statement_id  = "AllowAPIGatewayInvokeGet"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_api_gateway_rest_api.cookstore_api.execution_arn}/*/${aws_api_gateway_method.cookstore_api_get_method.http_method}${aws_api_gateway_resource.product_image_id.path}"
+}
+
 # The Deploy stage of the API.
 resource "aws_api_gateway_deployment" "prod" {
-  depends_on = [aws_api_gateway_integration.cookstore_api_get_method_integration]
+  depends_on = [aws_api_gateway_integration.cookstore_api_post_method_integration, aws_api_gateway_integration.cookstore_api_get_method_integration]
 
   rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
   stage_name  = "prod"
