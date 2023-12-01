@@ -56,11 +56,9 @@ export const lambdaHandler = async (
       Bucket: process.env.UploadBucket,
       Key: id,
     });
-    console.log("here 1")
     const url = await getSignedUrl(s3Client, command, {
       expiresIn: 24 * 60 * 60,
     });
-    console.log("here 2")
 
     try {
       return {
