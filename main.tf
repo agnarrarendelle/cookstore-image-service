@@ -176,9 +176,13 @@ resource "aws_api_gateway_deployment" "prod" {
   rest_api_id = aws_api_gateway_rest_api.cookstore_api.id
   stage_name  = "prod"
   description = "prod stage"
+  stage_description = "Deployed at ${timestamp()}"
 
   variables = {
     "lambdaFunctionName" = aws_lambda_function.lambda.function_name
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
